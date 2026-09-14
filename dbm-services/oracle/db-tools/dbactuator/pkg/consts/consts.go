@@ -69,16 +69,22 @@ const (
 	FindDestByDbUniqueName = `select dest_id from v$archive_dest
 where dest_id between 4 and 9
   and db_unique_name = :1`
-	CharacterSet          = "select value from v$nls_parameters where parameter='NLS_CHARACTERSET'"
-	InstanceName          = "select instance_name from v$instance"
-	RedoLogSize           = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$LOG"
-	StandbyLogSize        = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$STANDBY_LOG"
-	DbUniqueName          = "select value from v$parameter where name='db_unique_name'"
-	ServiceNames          = "select value from v$parameter where name='service_names'"
-	DatabaseRole          = "select database_role from v$database"
-	SwitchLogfile         = "alter system switch logfile"
-	StatisticListenerPort = 1522
-	ListenerPort          = 1521
+	CharacterSet            = "select value from v$nls_parameters where parameter='NLS_CHARACTERSET'"
+	InstanceName            = "select instance_name from v$instance"
+	RedoLogSize             = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$LOG"
+	StandbyLogSize          = "SELECT COUNT(*) AS group_num, MAX(BYTES) AS max_size FROM V$STANDBY_LOG"
+	DbUniqueName            = "select value from v$parameter where name='db_unique_name'"
+	ServiceNames            = "select value from v$parameter where name='service_names'"
+	DatabaseRole            = "select database_role from v$database"
+	SwitchLogfile           = "alter system switch logfile"
+	RecoverCancel           = "recover managed standby database cancel"
+	MountInstance           = "startup mount"
+	ShutdownImmediate       = "shutdown immediate"
+	ShutdownAbort           = "shutdown abort"
+	ActivateStandbyDatabase = "alter database activate standby database"
+	OpenInstance            = "alter database open"
+	StatisticListenerPort   = 1522
+	ListenerPort            = 1521
 )
 
 // 与 tnsnames.ora / DG 配置相关的常量与占位符定义，集中管理避免散落在函数体内

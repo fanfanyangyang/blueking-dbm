@@ -764,17 +764,20 @@ class OracleActuatorActionEnum(StrStructuredEnum):
     InstallInstanceFromExisting = EnumField("install-instance-from-existing", _("install-instance-from-existing"))
     RmanDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
     MasterDataguardConfig = EnumField("master-dataguard-config", _("master-dataguard-config"))
-    RMANDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
     AddSlave = EnumField("add-slave", _("add-slave"))
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
     RealTimeApply = EnumField("real-time-apply", _("real-time-apply"))
     PauseSync = EnumField("pause-sync", _("pause-sync"))
     StartListener = EnumField("start-listener", _("start-listener"))
+    StopListener = EnumField("stop-listener", _("stop-listener"))
     CheckSyncStatus = EnumField("check-sync-status", _("check-sync-status"))
     RealMaster = EnumField("real-master", _("real-master"))
     SwitchLog = EnumField("switch-log", _("switch-log"))
     Shutdown = EnumField("shutdown", _("shutdown"))
+    ShutdownService = EnumField("shutdown-service", _("shutdown-service"))
+    CheckConnections = EnumField("check-connections", _("check-connections"))
+    ActivateStandby = EnumField("activate-standby", _("activate-standby"))
 
 
 class SqlserverActuatorActionEnum(StrStructuredEnum):

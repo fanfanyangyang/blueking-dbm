@@ -2,10 +2,12 @@ package atomoracle
 
 import (
 	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -68,26 +70,57 @@ func (e *Shutdown) Name() string {
 
 // Run 执行函数
 func (e *Shutdown) Run() error {
+	e.Runtime.Logger.Info("start to shutdown listener")
+	err := ShutdownListener()
+	if err != nil {
+		e.Runtime.Logger.Error("shutdown listener fail: %s", err)
+		return err
+	}
+	e.Runtime.Logger.Info("shutdown listener success")
+
+	e.Runtime.Logger.Info("start to shutdown instance")
+	err = ShutdownInstance(false)
+	if err != nil {
+		e.Runtime.Logger.Error("shutdown instance fail: %s", err)
+		return err
+	}
+	e.Runtime.Logger.Info("shutdown instance success")
+	return nil
+
+}
+
+func ShutdownInstance(force bool) error {
 	db, err := common.OpenOracleAsSysdba()
 	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+		return err
 	}
 	defer db.Close()
-
-	query := `shutdown immediate`
-	err = common.ExecuteOracle(db, query)
-	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+	shutdownSQL := consts.ShutdownImmediate
+	err = common.ExecuteOracle(db, shutdownSQL)
+	if err == nil {
+		return nil
 	}
+	if !force {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
+	}
+	shutdownSQL = consts.ShutdownAbort
+	err = common.ExecuteOracle(db, shutdownSQL)
+	if err != nil {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
+	}
+	return nil
+}
 
+func ShutdownListener() error {
 	cmd := []string{`lsnrctl stop`, `lsnrctl stop LISTENER1`}
 	for _, c := range cmd {
-		out, err := util.RunBashCmd(c, "", nil, 30*time.Second)
-		if err != nil {
-			e.Runtime.Logger.Warn("run cmd %s fail: %s", c, err)
+		_, err := util.RunBashCmd(c, "", nil, 30*time.Second)
+		if err != nil && strings.Contains(c, "LISTENER1") {
 			continue
 		}
-		e.Runtime.Logger.Info("run cmd %s success: %s", c, out)
+		if err != nil {
+			return fmt.Errorf("failed to execute command: %s error: %v", c, err)
+		}
 	}
 	return nil
 }
