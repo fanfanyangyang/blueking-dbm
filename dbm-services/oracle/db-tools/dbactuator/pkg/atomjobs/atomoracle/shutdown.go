@@ -2,10 +2,12 @@ package atomoracle
 
 import (
 	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
+	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -68,26 +70,83 @@ func (e *Shutdown) Name() string {
 
 // Run 执行函数
 func (e *Shutdown) Run() error {
+	e.Runtime.Logger.Info("start to shutdown listener")
+	err := ShutdownListener()
+	if err != nil {
+		e.Runtime.Logger.Info("shutdown listener fail, skipped: %v", err)
+	}
+	isRunning, err := CheckListenerStatus()
+	if err != nil {
+		e.Runtime.Logger.Error("check listener status fail: %s", err)
+		return err
+	} else if isRunning {
+		e.Runtime.Logger.Info("listener is running")
+		return fmt.Errorf("listener is running, please check and shutdown listener manually")
+	}
+	e.Runtime.Logger.Info("shutdown listener success")
+
+	e.Runtime.Logger.Info("start to shutdown instance")
+	err = ShutdownInstance(false)
+	if err != nil {
+		e.Runtime.Logger.Error("shutdown instance fail: %s", err)
+		return err
+	}
+	e.Runtime.Logger.Info("shutdown instance success")
+	return nil
+
+}
+
+// ShutdownInstance 关闭实例
+func ShutdownInstance(force bool) error {
 	db, err := common.OpenOracleAsSysdba()
 	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+		return err
 	}
 	defer db.Close()
-
-	query := `shutdown immediate`
-	err = common.ExecuteOracle(db, query)
-	if err != nil {
-		return fmt.Errorf("shutdown immediate failed: %v", err)
+	shutdownSQL := consts.ShutdownImmediate
+	err = common.ExecuteOracle(db, shutdownSQL)
+	if err == nil {
+		return nil
 	}
-
-	cmd := []string{`lsnrctl stop`, `lsnrctl stop LISTENER1`}
-	for _, c := range cmd {
-		out, err := util.RunBashCmd(c, "", nil, 30*time.Second)
-		if err != nil {
-			e.Runtime.Logger.Warn("run cmd %s fail: %s", c, err)
-			continue
-		}
-		e.Runtime.Logger.Info("run cmd %s success: %s", c, out)
+	if !force {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
+	}
+	shutdownSQL = consts.ShutdownAbort
+	err = common.ExecuteOracle(db, shutdownSQL)
+	if err != nil {
+		return fmt.Errorf("failed to execute shutdown command: %s error: %v", shutdownSQL, err)
 	}
 	return nil
+}
+
+// ShutdownListener 关闭监听
+func ShutdownListener() error {
+	var errors error
+	cmd := []string{`lsnrctl stop`, `lsnrctl stop LISTENER1`}
+	for _, c := range cmd {
+		_, err := util.RunBashCmd(c, "", nil, 30*time.Second)
+		if err != nil {
+			errors = fmt.Errorf("%v \n failed to execute command: %s error: %v", err, c, err)
+			continue
+		}
+	}
+	return errors
+}
+
+// CheckListenerStatus 检查监听状态
+func CheckListenerStatus() (bool, error) {
+	isRunning := false
+	cmd := []string{`lsnrctl status`, `lsnrctl status LISTENER1`}
+	for _, c := range cmd {
+		_, err := util.RunBashCmd(c, "", nil, 30*time.Second)
+		if err != nil {
+			if strings.Contains(err.Error(), "No listener") {
+				continue
+			} else {
+				return isRunning, fmt.Errorf("failed to execute command: %s error: %v", c, err)
+			}
+		}
+		isRunning = true
+	}
+	return isRunning, nil
 }

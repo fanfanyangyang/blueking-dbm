@@ -46,7 +46,7 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
         primary_inst = storage_objs.filter(instance_role=InstanceRole.PRIMARY.value).first()
         if not primary_inst:
             raise ValueError(_("集群 {} 未找到 PRIMARY 实例").format(cluster_id))
-        standby_inst = storage_objs.filter(instance_role=InstanceRole.STANDBY.value).first()
+        standby_inst = storage_objs.filter(instance_role=InstanceRole.STANDBY.value, is_stand_by=True).first()
         if not standby_inst:
             raise ValueError(_("集群 {} 未找到 STANDBY 实例").format(cluster_id))
 
