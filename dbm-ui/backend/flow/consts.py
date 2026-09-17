@@ -762,7 +762,7 @@ class OracleActuatorActionEnum(StrStructuredEnum):
     GetSymbolicLink = EnumField("get-symbolic-link", _("get-symbolic-link"))
     ConfigDataguard = EnumField("config-dataguard", _("config-dataguard"))
     InstallInstanceFromExisting = EnumField("install-instance-from-existing", _("install-instance-from-existing"))
-    RmanDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
+    RMANDuplicate = EnumField("rman-duplicate", _("rman-duplicate"))
     MasterDataguardConfig = EnumField("master-dataguard-config", _("master-dataguard-config"))
     AddSlave = EnumField("add-slave", _("add-slave"))
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
