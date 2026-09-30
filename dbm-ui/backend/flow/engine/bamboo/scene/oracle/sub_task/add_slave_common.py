@@ -361,6 +361,7 @@ def build_dg_and_duplicate_sub_flow(
             payload_func_name=OracleActPayload.get_start_listener_payload.__name__,
         )
     )
+
     return sub_pipeline.build_sub_process(sub_name=_("配置DataGuard与RMAN复制"))
 
 
