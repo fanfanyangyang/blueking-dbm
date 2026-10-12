@@ -111,3 +111,21 @@ class DBMMcpInvalidPipelineNodeException(DBMMcpBaseException):
     ERROR_CODE = "014"
     MESSAGE = _("非法的 pipeline 节点")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpFeatureDisabledException(DBMMcpBaseException):
+    ERROR_CODE = "016"
+    MESSAGE = _("功能未启用")
+    MESSAGE_TPL = _("{feature} 功能未启用")
+
+
+class DBMMcpOracleConnectionException(DBMMcpBaseException):
+    ERROR_CODE = "017"
+    MESSAGE = _("Oracle 连接异常")
+    MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpInstanceNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = "018"
+    MESSAGE = _("实例未找到")
+    MESSAGE_TPL = _("{msg}")
