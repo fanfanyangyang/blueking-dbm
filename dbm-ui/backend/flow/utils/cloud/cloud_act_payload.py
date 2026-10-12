@@ -179,6 +179,8 @@ class CloudServiceActPayload(object):
             "drs_webconsole_password": self.kwargs["plain_webconsole_pwd"],
             "dns_nameserver": dns_nameserver_str,
             "proxy_password": DBPasswordHandler.get_component_password(UserName.PROXY, MySQLPrivComponent.PROXY),
+            "oracle_read_user": env.ORACLE_DRS_READ_USER,
+            "oracle_read_password": env.ORACLE_DRS_READ_PASSWORD,
         }
 
     def get_drs_apply_paylaod(self):

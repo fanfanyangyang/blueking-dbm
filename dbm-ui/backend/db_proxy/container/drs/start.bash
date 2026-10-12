@@ -27,6 +27,9 @@ export SQLSERVER_DATA_READ_USER="mssql_data_read_drs"
 export SQLSERVER_DATA_READ_PASSWORD=$DRS_MYSQL_ADMIN_PASSWORD
 export SQLSERVER_SYS_READ_USER="mssql_sys_read_drs"
 export SQLSERVER_SYS_READ_PASSWORD=$DRS_MYSQL_ADMIN_PASSWORD
+# Oracle 只读账号：由容器环境变量注入（ORACLE_READ_PASSWORD 未设置时 /v2/oracle/rpc 不可用）
+export ORACLE_READ_USER=${ORACLE_READ_USER:-mcp_readonly}
+export ORACLE_READ_PASSWORD=${ORACLE_READ_PASSWORD:-}
 
 # 将dns ip添加到nameserver
 awk -F, '{for(i=1; i<=NF; i++) print "nameserver " $i}' shard_env/dns_ip > dns_nameserver.conf

@@ -74,6 +74,8 @@ class DBMMcpTools(StrStructuredEnum):
     PULSAR_TOOLBOX = EnumField("pulsar-toolbox", "pulsar-toolbox")
     ES_QUERY_META = EnumField("es-query-meta", "es-query-meta")
     ES_BILL = EnumField("es-bill", "es-bill")
+    # Oracle MCP 工具（统一聚合为 oracle-query，全部只读查询类）
+    ORACLE_QUERY = EnumField("oracle-query", _("Oracle 查询"))
 
 
 class DBMMCPTags(StrStructuredEnum):

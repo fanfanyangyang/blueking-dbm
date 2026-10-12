@@ -29,6 +29,8 @@ type runtimeConfig struct {
 	SqlserverDataReadPassword string
 	SqlserverSySReadUser      string
 	SqlserverSySReadPassword  string
+	OracleReadUser            string
+	OracleReadPassword        string
 	Port                      int
 	ParserBin                 string
 	CAFile                    string
@@ -62,6 +64,8 @@ func InitConfig() {
 		SqlserverDataReadPassword: viper.GetString("sqlserver_data_read_password"),
 		SqlserverSySReadUser:      viper.GetString("sqlserver_sys_read_user"),
 		SqlserverSySReadPassword:  viper.GetString("sqlserver_sys_read_password"),
+		OracleReadUser:            viper.GetString("oracle_read_user"),
+		OracleReadPassword:        viper.GetString("oracle_read_password"),
 		Port:                      viper.GetInt("port"),
 		ParserBin:                 viper.GetString("tmysqlparser_bin"),
 		TLS:                       viper.GetBool("tls"),
