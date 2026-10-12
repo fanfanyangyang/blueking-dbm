@@ -245,6 +245,9 @@ MYSQL_CROND_AGENT_ADDRESS = get_type_env(
 DRS_PORT = get_type_env(key="DRS_PORT", _type=int, default=8888)
 DBM_PORT = get_type_env(key="DBM_PORT", _type=int, default=80)
 MANAGE_PORT = get_type_env(key="MANAGE_PORT", _type=int, default=8080)
+# DRS 访问 Oracle 的只读账号（注入 DRS 的 ORACLE_READ_USER / ORACLE_READ_PASSWORD）
+ORACLE_DRS_READ_USER = get_type_env(key="ORACLE_DRS_READ_USER", _type=str, default="mcp_readonly")
+ORACLE_DRS_READ_PASSWORD = get_type_env(key="ORACLE_DRS_READ_PASSWORD", _type=str, default="")
 # nginx转发dbm的地址(如果没有则取BK_SAAS_HOST)
 DBM_EXTERNAL_ADDRESS = get_type_env(key="DBM_EXTERNAL_ADDRESS", _type=str, default=BK_SAAS_HOST)
 # 云区域容器化开关

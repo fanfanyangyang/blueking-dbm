@@ -53,6 +53,8 @@ export SQLSERVER_DATA_READ_USER="mssql_data_read_drs"
 export SQLSERVER_DATA_READ_PASSWORD="{{drs_password}}"
 export SQLSERVER_SYS_READ_USER="mssql_sys_read_drs"
 export SQLSERVER_SYS_READ_PASSWORD="{{drs_password}}"
+export ORACLE_READ_USER="{{oracle_read_user}}"
+export ORACLE_READ_PASSWORD="{{oracle_read_password}}"
 
 
 # 容器环境不要使用
