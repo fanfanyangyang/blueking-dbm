@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Optional
-
 from backend.dbm_aiagent.mcp_tools.oracle.constants import ORACLE_MAX_ROWS
 from backend.dbm_aiagent.mcp_tools.oracle.helpers.oracle_conn import fetch_dicts, oracle_cursor
 
@@ -33,13 +31,12 @@ SELECT * FROM (
 
 
 def get_alert_log_errors(
-    immute_domain: str,
-    addr: Optional[str] = None,
+    addr: str,
     hours: int = 24,
     limit: int = ORACLE_MAX_ROWS,
 ) -> dict:
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_ALERT_LOG_ERRORS, {"hours": int(hours), "row_limit": limit})
         rows = fetch_dicts(cur)
     return {"errors": rows, "count": len(rows), "hours": hours}

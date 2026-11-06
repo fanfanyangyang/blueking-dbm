@@ -8,9 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Optional
-
-from backend.dbm_aiagent.mcp_tools.oracle.constants import ORACLE_MAX_ROWS, ORACLE_MAX_SQL_TEXT_LEN
+from backend.dbm_aiagent.mcp_tools.oracle.constants import ORACLE_MAX_ROWS
 from backend.dbm_aiagent.mcp_tools.oracle.helpers.oracle_conn import fetch_dicts, oracle_cursor
 
 # 活跃会话（剔除后台进程，排除"空闲等待"的会话，只保留真正在干活的会话）
@@ -78,7 +76,7 @@ SELECT * FROM (
         s.last_call_et  AS seconds_running,
         s.machine,
         s.program,
-        q.sql_text, 1, :sql_text_len) AS sql_text
+        q.sql_text
     FROM v$session s
     LEFT JOIN v$sql q ON s.sql_id = q.sql_id AND s.sql_child_number = q.child_number
     WHERE s.type = 'USER'
@@ -90,37 +88,29 @@ SELECT * FROM (
 """
 
 
-def get_active_sessions(immute_domain: str, addr: Optional[str] = None, limit: int = ORACLE_MAX_ROWS) -> dict:
+def get_active_sessions(addr: str, limit: int = ORACLE_MAX_ROWS) -> dict:
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_ACTIVE_SESSIONS, {"row_limit": limit})
         rows = fetch_dicts(cur)
     return {"sessions": rows, "count": len(rows)}
 
 
-def get_blocking_sessions(immute_domain: str, addr: Optional[str] = None, limit: int = ORACLE_MAX_ROWS) -> dict:
+def get_blocking_sessions(addr: str, limit: int = ORACLE_MAX_ROWS) -> dict:
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_BLOCKING_SESSIONS, {"row_limit": limit})
         rows = fetch_dicts(cur)
     return {"blocking_chains": rows, "count": len(rows)}
 
 
 def get_long_running_queries(
-    immute_domain: str,
-    addr: Optional[str] = None,
+    addr: str,
     min_seconds: int = 60,
     limit: int = ORACLE_MAX_ROWS,
 ) -> dict:
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
-        cur.execute(
-            SQL_LONG_RUNNING,
-            {
-                "min_seconds": int(min_seconds),
-                "row_limit": limit,
-                "sql_text_len": ORACLE_MAX_SQL_TEXT_LEN,
-            },
-        )
+    with oracle_cursor(addr) as cur:
+        cur.execute(SQL_LONG_RUNNING, {"min_seconds": int(min_seconds), "row_limit": limit})
         rows = fetch_dicts(cur)
     return {"queries": rows, "count": len(rows)}

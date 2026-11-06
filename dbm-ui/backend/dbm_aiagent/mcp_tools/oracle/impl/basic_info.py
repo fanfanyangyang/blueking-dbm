@@ -65,9 +65,9 @@ SELECT * FROM (
 """
 
 
-def get_instance_info(immute_domain: str, addr: Optional[str] = None) -> dict:
+def get_instance_info(addr: str) -> dict:
     """获取 Oracle 实例概览：v$instance + v$database 合并返回。"""
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_INSTANCE_INFO)
         inst_rows = fetch_dicts(cur, limit=1)
         cur.execute(SQL_DATABASE_INFO)
@@ -79,17 +79,16 @@ def get_instance_info(immute_domain: str, addr: Optional[str] = None) -> dict:
     }
 
 
-def get_db_version(immute_domain: str, addr: Optional[str] = None) -> dict:
+def get_db_version(addr: str) -> dict:
     """获取 Oracle 版本信息（v$version banner）。11.2 返回多行（DB/PLSQL/CORE/TNS/NLSRTL）。"""
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_DB_VERSION)
         rows = fetch_dicts(cur, limit=10)
     return {"banners": [r["banner"] for r in rows if r.get("banner")]}
 
 
 def get_db_parameters(
-    immute_domain: str,
-    addr: Optional[str] = None,
+    addr: str,
     names: Optional[List[str]] = None,
 ) -> dict:
     """
@@ -111,7 +110,7 @@ def get_db_parameters(
 
     binds["row_limit"] = ORACLE_MAX_ROWS
     sql = SQL_DB_PARAMETERS_ALL.format(name_filter=name_filter)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(sql, binds)
         rows = fetch_dicts(cur)
     return {"parameters": rows, "truncated": len(rows) >= ORACLE_MAX_ROWS}

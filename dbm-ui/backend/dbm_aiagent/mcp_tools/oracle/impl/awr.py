@@ -57,24 +57,22 @@ def _ensure_enabled():
 
 
 def list_awr_snapshots(
-    immute_domain: str,
-    addr: Optional[str] = None,
+    addr: str,
     days: int = 7,
     limit: int = ORACLE_MAX_ROWS,
 ) -> dict:
     _ensure_enabled()
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_LIST_AWR_SNAPSHOTS, {"days": int(days), "row_limit": limit})
         rows = fetch_dicts(cur)
     return {"snapshots": rows, "count": len(rows), "days": days}
 
 
 def generate_awr_report(
-    immute_domain: str,
+    addr: str,
     begin_snap: int,
     end_snap: int,
-    addr: Optional[str] = None,
     dbid: Optional[int] = None,
     inst_num: Optional[int] = None,
 ) -> dict:
@@ -85,7 +83,7 @@ def generate_awr_report(
     """
     _ensure_enabled()
 
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         if dbid is None:
             cur.execute("SELECT dbid FROM v$database")
             dbid = cur.fetchone()[0]

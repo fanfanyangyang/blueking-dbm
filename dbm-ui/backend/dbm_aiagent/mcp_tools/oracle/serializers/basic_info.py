@@ -13,15 +13,10 @@ from rest_framework import serializers
 
 
 class OracleAddrMixin(serializers.Serializer):
-    """所有 Oracle MCP 工具的通用入参：cluster_domain 必填，addr 可选。"""
+    """所有 Oracle MCP 工具的通用入参：bk_cloud_id 和 address 均必填。"""
 
-    cluster_domain = serializers.CharField(help_text=_("Oracle 集群 immute_domain（鉴权维度）"))
-    addr = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True,
-        help_text=_("实例地址 ip:port，不填则默认连接 Primary / 单节点"),
-    )
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址（鉴权维度）"))
 
 
 class GetInstanceInfoInputSerializer(OracleAddrMixin):

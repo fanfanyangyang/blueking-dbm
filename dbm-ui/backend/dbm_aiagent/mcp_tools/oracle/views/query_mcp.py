@@ -13,9 +13,17 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Machine
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_instances
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
+from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpInstanceNotFoundException,
+    DBMMcpNotSupportMachineTypeException,
+)
+from backend.dbm_aiagent.mcp_tools.oracle.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.oracle.impl.awr import generate_awr_report, list_awr_snapshots
 from backend.dbm_aiagent.mcp_tools.oracle.impl.basic_info import get_db_parameters, get_db_version, get_instance_info
 from backend.dbm_aiagent.mcp_tools.oracle.impl.capacity import get_sga_pga_usage, get_tablespace_usage, get_undo_usage
@@ -90,7 +98,7 @@ logger = logging.getLogger("root")
 class OracleQueryMcpToolsViewSet(McpToolsViewSet):
     """Oracle 只读查询 MCP 工具集（oracle-query）。
 
-    鉴权维度：集群（immute_domain）；统一走 McpClusterDetailPermission + auth_parse_clusters。
+    鉴权维度：实例所属集群（bk_cloud_id + address）；统一走 McpClusterDetailPermission + auth_parse_instances。
     对应 MCP server: `oracle-query`，覆盖基础信息 / 状态探活 / 会话与活动 / 性能分析 /
     容量 / 健康检查 / AWR 报告 等能力。
     """
@@ -104,16 +112,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetInstanceInfoInputSerializer,
         response_slz=GetInstanceInfoOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_instance_info(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_instance_info(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
             )
         )
 
@@ -122,16 +135,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetDbVersionInputSerializer,
         response_slz=GetDbVersionOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_db_version(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_db_version(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
             )
         )
 
@@ -145,16 +163,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetDbParametersInputSerializer,
         response_slz=GetDbParametersOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_db_parameters(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_db_parameters(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 names=self.get_param("names"),
             )
         )
@@ -173,16 +196,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=CheckInstanceStatusInputSerializer,
         response_slz=CheckInstanceStatusOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def check_instance_status(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             check_instance_status(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
             )
         )
 
@@ -195,16 +223,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetActiveSessionsInputSerializer,
         response_slz=GetActiveSessionsOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_active_sessions(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_active_sessions(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 limit=self.get_param("limit"),
             )
         )
@@ -214,16 +247,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetBlockingSessionsInputSerializer,
         response_slz=GetBlockingSessionsOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_blocking_sessions(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_blocking_sessions(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 limit=self.get_param("limit"),
             )
         )
@@ -233,16 +271,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetLongRunningInputSerializer,
         response_slz=GetLongRunningOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_long_running_queries(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_long_running_queries(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 min_seconds=self.get_param("min_seconds"),
                 limit=self.get_param("limit"),
             )
@@ -257,16 +300,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetTopSqlByCpuInputSerializer,
         response_slz=GetTopSqlByCpuOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_top_sql_by_cpu(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_top_sql_by_cpu(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 sort_by=self.get_param("sort_by"),
                 limit=self.get_param("limit"),
             )
@@ -277,16 +325,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetTopSqlByIoInputSerializer,
         response_slz=GetTopSqlByIoOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_top_sql_by_io(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_top_sql_by_io(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 limit=self.get_param("limit"),
             )
         )
@@ -296,16 +349,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetWaitEventsInputSerializer,
         response_slz=GetWaitEventsOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_wait_events(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_wait_events(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 limit=self.get_param("limit"),
             )
         )
@@ -315,17 +373,22 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetSqlPlanInputSerializer,
         response_slz=GetSqlPlanOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_sql_plan(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_sql_plan(
-                immute_domain=self.get_param("cluster_domain"),
                 sql_id=self.get_param("sql_id"),
-                addr=self.get_param("addr"),
+                addr=address,
                 child_number=self.get_param("child_number"),
             )
         )
@@ -339,16 +402,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetTablespaceUsageInputSerializer,
         response_slz=GetTablespaceUsageOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_tablespace_usage(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_tablespace_usage(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 limit=self.get_param("limit"),
             )
         )
@@ -358,16 +426,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetUndoUsageInputSerializer,
         response_slz=GetUndoUsageOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_undo_usage(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_undo_usage(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
             )
         )
 
@@ -376,16 +449,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetSgaPgaUsageInputSerializer,
         response_slz=GetSgaPgaUsageOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_sga_pga_usage(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_sga_pga_usage(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
             )
         )
 
@@ -398,16 +476,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetAlertLogErrorsInputSerializer,
         response_slz=GetAlertLogErrorsOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def get_alert_log_errors(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             get_alert_log_errors(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 hours=self.get_param("hours"),
                 limit=self.get_param("limit"),
             )
@@ -422,16 +505,21 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ListAwrSnapshotsInputSerializer,
         response_slz=ListAwrSnapshotsOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def list_awr_snapshots(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             list_awr_snapshots(
-                immute_domain=self.get_param("cluster_domain"),
-                addr=self.get_param("addr"),
+                addr=address,
                 days=self.get_param("days"),
                 limit=self.get_param("limit"),
             )
@@ -442,21 +530,39 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=GenerateAwrReportInputSerializer,
         response_slz=GenerateAwrReportOutputSerializer,
         permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
+        mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.ORACLE_QUERY],
         name_prefix="oracle_query",
     )
     def generate_awr_report(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone])
+
         return Response(
             generate_awr_report(
-                immute_domain=self.get_param("cluster_domain"),
                 begin_snap=self.get_param("begin_snap"),
                 end_snap=self.get_param("end_snap"),
-                addr=self.get_param("addr"),
+                addr=address,
                 dbid=self.get_param("dbid"),
                 inst_num=self.get_param("inst_num"),
             )
         )
 
     # endregion
+
+
+def _validate_and_get_machine(bk_cloud_id: int, address: str) -> Machine:
+    """根据云区域和实例地址获取 Oracle 机器。"""
+    ip = address.rsplit(IP_PORT_DIVIDER, 1)[0]
+    machine_obj = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if not machine_obj:
+        raise DBMMcpInstanceNotFoundException(msg=f"machine not found: bk_cloud_id={bk_cloud_id}, ip={ip}")
+
+    if machine_obj.machine_type != MachineType.ORACLE:
+        raise DBMMcpNotSupportMachineTypeException(machine_type=machine_obj.machine_type)
+
+    return machine_obj

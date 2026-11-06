@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
-from typing import Optional
 
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpOracleConnectionException
 from backend.dbm_aiagent.mcp_tools.oracle.helpers.oracle_conn import fetch_dicts, oracle_cursor
@@ -98,7 +97,7 @@ def _derive_health(state: dict, session_usage_pct: float) -> dict:
     return {"level": level, "reasons": reasons}
 
 
-def check_instance_status(immute_domain: str, addr: Optional[str] = None) -> dict:
+def check_instance_status(addr: str) -> dict:
     """
     综合探活 Oracle 实例：
     - 连接是否可用
@@ -111,7 +110,7 @@ def check_instance_status(immute_domain: str, addr: Optional[str] = None) -> dic
     start_ts = time.monotonic()
 
     try:
-        with oracle_cursor(immute_domain, addr) as cur:
+        with oracle_cursor(addr) as cur:
             cur.execute(SQL_INSTANCE_STATE)
             state_rows = fetch_dicts(cur, limit=1)
             cur.execute(SQL_SESSION_COUNTS)

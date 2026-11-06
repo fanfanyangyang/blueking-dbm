@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Optional
-
 from backend.dbm_aiagent.mcp_tools.oracle.constants import ORACLE_MAX_ROWS
 from backend.dbm_aiagent.mcp_tools.oracle.helpers.oracle_conn import fetch_dicts, oracle_cursor
 
@@ -73,23 +71,23 @@ WHERE name IN (
 """
 
 
-def get_tablespace_usage(immute_domain: str, addr: Optional[str] = None, limit: int = ORACLE_MAX_ROWS) -> dict:
+def get_tablespace_usage(addr: str, limit: int = ORACLE_MAX_ROWS) -> dict:
     limit = min(int(limit or ORACLE_MAX_ROWS), ORACLE_MAX_ROWS)
-    with oracle_cursor(immute_domain, addr) as cur:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_TABLESPACE_USAGE, {"row_limit": limit})
         rows = fetch_dicts(cur)
     return {"tablespaces": rows, "count": len(rows)}
 
 
-def get_undo_usage(immute_domain: str, addr: Optional[str] = None) -> dict:
-    with oracle_cursor(immute_domain, addr) as cur:
+def get_undo_usage(addr: str) -> dict:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_UNDO_USAGE)
         rows = fetch_dicts(cur)
     return {"undo_extents": rows}
 
 
-def get_sga_pga_usage(immute_domain: str, addr: Optional[str] = None) -> dict:
-    with oracle_cursor(immute_domain, addr) as cur:
+def get_sga_pga_usage(addr: str) -> dict:
+    with oracle_cursor(addr) as cur:
         cur.execute(SQL_SGA)
         sga = fetch_dicts(cur)
         cur.execute(SQL_PGA)

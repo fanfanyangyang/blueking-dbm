@@ -3,9 +3,9 @@
 Oracle 数据库相关的 MCP 工具集，供 LLM Agent 调用进行只读查询、健康探活、性能分析与 AWR 报告生成。
 
 - **MCP server 名称**：`oracle-query`（所有 Oracle 工具统一归入该 server）。
-- 鉴权维度：**集群**（immute_domain）。
-- 鉴权实现：`permission_classes=[McpClusterDetailPermission]` + `mcp_auth_parser=auth_parse_clusters`。
-- 元数据来源：`db_meta.Cluster`（`cluster_type` ∈ {`OraclePrimaryStandby`, `OracleSingleNone`}）+ `db_meta.StorageInstance`。
+- 鉴权维度：**实例所属集群**（`bk_cloud_id` + `address`）。
+- 鉴权实现：`permission_classes=[McpClusterDetailPermission]` + `mcp_auth_parser=auth_parse_instances`。
+- 元数据来源：`db_meta.Machine` + `db_meta.Cluster`（`cluster_type` ∈ {`OraclePrimaryStandby`, `OracleSingleNone`}）+ `db_meta.StorageInstance`。
 - 工具性质：全部为**只读**（SELECT / PL/SQL 调用只读包函数），均使用绑定变量防止 SQL 注入。
 - 行数上限：所有列表接口统一受 `ORACLE_MAX_ROWS`（默认 200）约束，使用 `ROWNUM <= :row_limit` 子查询包装。
 - **目标版本**：Oracle 11.2.0.4。
@@ -16,8 +16,8 @@ Oracle 数据库相关的 MCP 工具集，供 LLM Agent 调用进行只读查询
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `cluster_domain` | string | 是 | Oracle 集群的 `immute_domain`，鉴权维度 |
-| `addr` | string | 否 | 目标实例 `ip:port`。不填：默认连接 Primary（主从版）/ 唯一实例（单节点版）；填：强制校验属于 `cluster_domain` 对应集群，防越权。 |
+| `bk_cloud_id` | integer | 是 | 实例所在云区域 ID |
+| `address` | string | 是 | 目标实例 `ip:port`，鉴权维度；连接前会校验实例存在且属于 Oracle 集群。 |
 
 ## 环境变量
 
@@ -27,7 +27,6 @@ Oracle 数据库相关的 MCP 工具集，供 LLM Agent 调用进行只读查询
 | `ORACLE_MCP_PASSWORD` | — | 账号密码（临时方案，后续切换至 DBM 密码服务） |
 | `ORACLE_ENABLE_AWR` | `false` | AWR 工具开关，默认关闭             |
 | `ORACLE_MCP_MAX_ROWS` | `200` | 单次查询返回行数上限                |
-| `ORACLE_MCP_MAX_SQL_TEXT_LEN` | `4000` | SQL 文本字段截断长度              |
 | `ORACLE_MCP_CONNECT_TIMEOUT` | `10` | 连接超时（秒）                   |
 | `ORACLE_MCP_QUERY_TIMEOUT` | `60` | 单次查询超时（秒）                 |
 | `ORACLE_MCP_POOL_MIN` / `_MAX` / `_INCREMENT` | `1 / 4 / 1` | 连接池参数                     |
@@ -205,7 +204,7 @@ Oracle 实例综合**健康探活**。一次调用完成：连通性检查、关
 | `limit` | int | 否 | `ORACLE_MAX_ROWS` | 返回行数上限 |
 
 - **出参**：`{"queries": [...], "count": N}`
-- **关键列**：`sid`, `username`, `sql_id`, `seconds_running`, `event`, `sql_text`（截断到 `ORACLE_MAX_SQL_TEXT_LEN`）
+- **关键列**：`sid`, `username`, `sql_id`, `seconds_running`, `event`, `sql_text`
 
 ---
 
@@ -352,10 +351,10 @@ SGA / PGA 内存使用情况。
 
 ## 安全与质量约束（全局生效）
 
-1. **鉴权**：所有工具走 `McpClusterDetailPermission`，由 `auth_parse_clusters` 将 `cluster_domain` 映射到 `cluster_id`，走 IAM 集群级权限校验。
-2. **实例越权防护**：传入 `addr` 时强制校验属于 `cluster_domain` 对应集群，拒绝连接任意实例。
+1. **鉴权**：所有工具走 `McpClusterDetailPermission`，由 `auth_parse_instances` 将 `address` 映射到实例所属的 `cluster_id`，走 IAM 集群级权限校验。
+2. **实例越权防护**：由 `bk_cloud_id` + `address` 定位机器和存储实例，并校验其属于 Oracle 集群，拒绝连接任意实例。
 3. **SQL 注入防护**：所有用户输入通过 Oracle 绑定变量传入；动态列名 / 标识符（`sort_by`、`sql_id`、`names`）通过枚举白名单或字符白名单校验。
-4. **结果上限**：所有列表接口统一受 `ORACLE_MAX_ROWS` 约束，SQL 文本字段截断到 `ORACLE_MAX_SQL_TEXT_LEN`。
+4. **结果上限**：所有列表接口统一受 `ORACLE_MAX_ROWS` 约束。
 5. **连接复用**：按 `(ip, port, service_name)` 维度维护 `oracledb.ConnectionPool`，不每次 open/close。
 6. **只读账号**：所有工具通过 `ORACLE_MCP_USER`（默认 `dbm_mcp_ro`）登录。
 7. **AWR 开关**：`ORACLE_ENABLE_AWR` 控制，便于按要求禁用。

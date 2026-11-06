@@ -13,14 +13,14 @@ import os
 # Oracle MCP 查询使用的只读账号用户名（固定使用该账号登录目标 Oracle 实例）
 ORACLE_MCP_USER = os.getenv("ORACLE_MCP_USER", "dbm_mcp_ro")
 
+# Oracle 连接使用的 service_name（固定值）
+ORACLE_SERVICE_NAME = "CFDB"
+
 # AWR 功能开关，默认关闭
 ORACLE_ENABLE_AWR = os.getenv("ORACLE_ENABLE_AWR", "false").lower() == "true"
 
 # 结果行数上限
 ORACLE_MAX_ROWS = int(os.getenv("ORACLE_MCP_MAX_ROWS", "200"))
-
-# SQL 文本字段截断长度
-ORACLE_MAX_SQL_TEXT_LEN = int(os.getenv("ORACLE_MCP_MAX_SQL_TEXT_LEN", "4000"))
 
 # 连接超时（秒）
 ORACLE_CONNECT_TIMEOUT = int(os.getenv("ORACLE_MCP_CONNECT_TIMEOUT", "10"))
