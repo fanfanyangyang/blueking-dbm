@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 通过 DRS（db-remote-service）的 /v2/oracle/rpc 接口执行 Oracle 只读查询。
 
 - DRS 使用纯 Go 驱动 go-ora 直连实例，不依赖 Oracle Instant Client，兼容 11.2.0.4；
-- 连接账号由 DRS 侧配置（ORACLE_READ_USER / ORACLE_READ_PASSWORD），本模块不接触密码；
+- 连接账号由 DRS 侧配置（ORACLE_READ_USER / ORACLE_READ_PASSWORD）
 - DRS 只放行 SELECT / WITH 语句。
 """
 import logging
@@ -45,9 +45,6 @@ _DRS_EXTRA_TIMEOUT = 15
 _BIND_RE = re.compile(r":([A-Za-z_][A-Za-z0-9_]*)")
 
 
-# ---------- db_meta 定位 ----------
-
-
 def resolve_instance(addr: str) -> StorageInstance:
     """按 addr（ip:port）解析 Oracle 存储实例；未命中或命中多个实例（跨云区域同地址）时报错。"""
     if ":" not in addr:
@@ -68,9 +65,6 @@ def resolve_instance(addr: str) -> StorageInstance:
     if len(instances) > 1:
         raise DBMMcpInstanceNotFoundException(msg=f"addr {addr} matches multiple oracle instances")
     return instances[0]
-
-
-# ---------- SQL 渲染 ----------
 
 
 def _render_literal(value: Any) -> str:
@@ -96,9 +90,6 @@ def _render_sql(sql: str, binds: Optional[Dict[str, Any]]) -> str:
         rendered = {k: _render_literal(v) for k, v in binds.items()}
         sql = _BIND_RE.sub(lambda m: rendered.get(m.group(1), m.group(0)), sql)
     return sql.strip().rstrip(";").strip()
-
-
-# ---------- DRS 调用与结果解析 ----------
 
 
 def _call_drs(addr: str, bk_cloud_id: int, cmds: List[str]) -> dict:
@@ -139,9 +130,6 @@ def _parse_result(addr: str, addr_res: dict, cmds: List[str]) -> List[List[Dict[
         rows = res.get("table_data") or []
         outputs.append([{str(k).lower(): v for k, v in row.items()} for row in rows])
     return outputs
-
-
-# ---------- 对外接口 ----------
 
 
 def run_queries(addr: str, queries: Sequence[Query]) -> List[List[Dict[str, Any]]]:

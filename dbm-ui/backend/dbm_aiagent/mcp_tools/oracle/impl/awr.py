@@ -90,8 +90,6 @@ FROM v$database d, v$instance i,
 """
 
 
-# ---------- 结构化负载指标（巡检与基线对比） ----------
-
 # 取自 dba_hist_sysstat 的累计量：(出参别名, stat_name)
 _SYSSTAT_METRICS = (
     ("logical_reads", "session logical reads"),

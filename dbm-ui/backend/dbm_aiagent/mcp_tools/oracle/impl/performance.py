@@ -148,9 +148,6 @@ SQL_ASH_TOP_SQL = top_sql_sql(
 )
 
 
-# ---------- 执行计划 ----------
-
-
 def _assert_sql_id(sql_id: str) -> None:
     """sql_id 会拼入 DBMS_XPLAN 调用，必须白名单校验。"""
     if not sql_id or not _SQL_ID_RE.match(sql_id):
@@ -238,9 +235,6 @@ def get_sql_plan_awr(addr: str, sql_id: str, plan_hash_value: Optional[int] = No
         "plans": hash_rows,
         "warnings": warnings,
     }
-
-
-# ---------- 内存 ASH ----------
 
 
 def _assert_within_lookback(w: Dict[str, Any], begin_time: str) -> None:

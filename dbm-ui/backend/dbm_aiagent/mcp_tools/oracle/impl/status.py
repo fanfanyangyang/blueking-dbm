@@ -18,7 +18,6 @@ from backend.dbm_aiagent.mcp_tools.oracle.helpers.time_window import local_to_tz
 
 logger = logging.getLogger("root")
 
-# 一次性拉取实例+DB+会话计数的综合状态
 SQL_INSTANCE_STATE = f"""
 SELECT
     i.instance_name,
@@ -52,7 +51,6 @@ SELECT
 FROM v$session
 """
 
-# sessions 上限（初始化参数）
 SQL_SESSION_LIMIT = """
 SELECT TO_NUMBER(value) AS session_limit
 FROM v$parameter
@@ -84,7 +82,6 @@ SELECT * FROM (
 ) WHERE ROWNUM <= :row_limit
 """
 
-# 评估结论：根据状态字段汇总 health 等级
 _HEALTHY_INSTANCE_STATUS = {"OPEN"}
 _HEALTHY_DB_STATUS = {"ACTIVE"}
 

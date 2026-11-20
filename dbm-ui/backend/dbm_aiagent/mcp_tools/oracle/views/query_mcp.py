@@ -133,8 +133,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
         assert_cluster_type(machine_obj)
         return address
 
-    # region 状态探活（2）
-
     @mcp_tools_api_decorator(
         description=str(
             _(
@@ -187,10 +185,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
                 limit=self.get_param("limit"),
             )
         )
-
-    # endregion
-
-    # region 会话与活动（3）
 
     @mcp_tools_api_decorator(
         description=str(
@@ -267,10 +261,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
                 limit=self.get_param("limit"),
             )
         )
-
-    # endregion
-
-    # region 性能分析（5，其中 ASH 3 个受 ORACLE_ENABLE_AWR 开关控制）
 
     @mcp_tools_api_decorator(
         description=str(
@@ -431,10 +421,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
             )
         )
 
-    # endregion
-
-    # region 历史 ASH（4，受 ORACLE_ENABLE_AWR 开关控制）
-
     @mcp_tools_api_decorator(
         description=str(
             _(
@@ -568,10 +554,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
             )
         )
 
-    # endregion
-
-    # region 容量（3）
-
     @mcp_tools_api_decorator(
         description=str(_("查询 Oracle 表空间使用率（按已用占比降序，含 autoextensible 与 max_mb）。")),
         request_slz=GetTablespaceUsageInputSerializer,
@@ -629,10 +611,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
                 addr=address,
             )
         )
-
-    # endregion
-
-    # region AWR（4，通过 ORACLE_ENABLE_AWR 环境变量控制开关）
 
     @mcp_tools_api_decorator(
         description=str(
@@ -756,8 +734,6 @@ class OracleQueryMcpToolsViewSet(McpToolsViewSet):
                 end_time=self.get_param("end_time"),
             )
         )
-
-    # endregion
 
 
 def _validate_and_get_machine(bk_cloud_id: int, address: str) -> Machine:
